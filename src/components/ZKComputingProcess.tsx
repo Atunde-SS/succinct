@@ -11,7 +11,6 @@ export const ZKComputingProcess = ({ isVisible, onComplete }: ZKComputingProcess
   const [currentStep, setCurrentStep] = useState(0);
   const [processLog, setProcessLog] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
-  const [currentLogIndex, setCurrentLogIndex] = useState(0);
 
   const zkSteps = [
     {
@@ -86,62 +85,55 @@ export const ZKComputingProcess = ({ isVisible, onComplete }: ZKComputingProcess
       setCurrentStep(0);
       setProcessLog([]);
       setIsComplete(false);
-      setCurrentLogIndex(0);
       return;
     }
 
-    // Generate random total duration between 30-50 seconds
-    const totalDuration = Math.random() * 20000 + 30000; // 30-50 seconds
-    const stepDuration = totalDuration / zkSteps.length;
+    console.log('Starting ZK computation process');
+    
+    // Process each step with a 2.5 second delay between steps
+    const processSteps = async () => {
+      // Step 1
+      setTimeout(() => {
+        console.log('Processing step 1/4');
+        setCurrentStep(1);
+        setProcessLog(zkSteps[0].logs);
+      }, 500);
 
-    let stepTimer: NodeJS.Timeout;
-    let logTimer: NodeJS.Timeout;
+      // Step 2
+      setTimeout(() => {
+        console.log('Processing step 2/4');
+        setCurrentStep(2);
+        setProcessLog([...zkSteps[0].logs, ...zkSteps[1].logs]);
+      }, 3000);
 
-    const processStep = (stepIndex: number) => {
-      if (stepIndex >= zkSteps.length) {
+      // Step 3
+      setTimeout(() => {
+        console.log('Processing step 3/4');
+        setCurrentStep(3);
+        setProcessLog([...zkSteps[0].logs, ...zkSteps[1].logs, ...zkSteps[2].logs]);
+      }, 5500);
+
+      // Step 4
+      setTimeout(() => {
+        console.log('Processing step 4/4');
+        setCurrentStep(4);
+        setProcessLog([...zkSteps[0].logs, ...zkSteps[1].logs, ...zkSteps[2].logs, ...zkSteps[3].logs]);
+      }, 8000);
+
+      // Complete
+      setTimeout(() => {
+        console.log('ZK computation completed successfully');
         setIsComplete(true);
+        
+        // Return to dashboard after showing success
         setTimeout(() => {
+          console.log('Returning to dashboard');
           onComplete();
         }, 2000);
-        return;
-      }
-
-      const step = zkSteps[stepIndex];
-      const logInterval = stepDuration / step.logs.length;
-      let logIndex = 0;
-
-      const processLogs = () => {
-        if (logIndex < step.logs.length) {
-          setProcessLog(prev => [...prev, step.logs[logIndex]]);
-          logIndex++;
-          
-          // Variable timing for more realistic feel
-          const nextLogDelay = logInterval * (0.5 + Math.random());
-          logTimer = setTimeout(processLogs, nextLogDelay);
-        } else {
-          // Move to next step
-          if (stepIndex < zkSteps.length - 1) {
-            setCurrentStep(stepIndex + 1);
-            stepTimer = setTimeout(() => processStep(stepIndex + 1), 500);
-          } else {
-            setIsComplete(true);
-            setTimeout(() => {
-              onComplete();
-            }, 2000);
-          }
-        }
-      };
-
-      processLogs();
+      }, 10500);
     };
 
-    // Start processing
-    processStep(0);
-
-    return () => {
-      clearTimeout(stepTimer);
-      clearTimeout(logTimer);
-    };
+    processSteps();
   }, [isVisible, onComplete]);
 
   if (!isVisible) return null;
@@ -165,14 +157,17 @@ export const ZKComputingProcess = ({ isVisible, onComplete }: ZKComputingProcess
               <div
                 key={index}
                 className={`flex flex-col items-center transition-all duration-500 ${
-                  index <= currentStep ? 'text-green-400' : 'text-gray-600'
+                  index < currentStep ? 'text-green-400' : 
+                  index === currentStep - 1 ? 'text-green-400' : 'text-gray-600'
                 }`}
               >
                 <div className={`p-2 md:p-3 rounded-full border-2 mb-2 transition-all duration-500 ${
-                  index <= currentStep 
-                    ? 'bg-green-400/20 border-green-400 scale-110' 
+                  index < currentStep 
+                    ? 'bg-green-400/20 border-green-400' 
+                    : index === currentStep - 1
+                    ? 'bg-green-400/20 border-green-400 scale-110 animate-pulse'
                     : 'bg-gray-800/20 border-gray-600'
-                } ${index === currentStep ? 'animate-pulse' : ''}`}>
+                }`}>
                   {step.icon}
                 </div>
                 <span className="font-mono text-xs text-center max-w-20">
@@ -188,12 +183,12 @@ export const ZKComputingProcess = ({ isVisible, onComplete }: ZKComputingProcess
               <div 
                 className="h-full bg-gradient-to-r from-green-500 to-cyan-500 transition-all duration-1000 ease-out"
                 style={{ 
-                  width: `${((currentStep + (currentLogIndex / zkSteps[currentStep]?.logs.length || 1)) / zkSteps.length) * 100}%` 
+                  width: `${isComplete ? 100 : (currentStep / zkSteps.length) * 100}%` 
                 }}
               />
             </div>
             <div className="text-center font-mono text-sm text-green-400 mt-2">
-              Processing Step {currentStep + 1} of {zkSteps.length} • {processLog.length} operations completed
+              {isComplete ? 'Processing Complete!' : `Processing Step ${currentStep} of ${zkSteps.length}`} • {processLog.length} operations completed
             </div>
           </div>
 
@@ -230,6 +225,9 @@ export const ZKComputingProcess = ({ isVisible, onComplete }: ZKComputingProcess
                 </h3>
                 <p className="font-mono text-green-300 text-sm">
                   Cryptographic proof verified and ready for deployment...
+                </p>
+                <p className="font-mono text-green-500 text-xs mt-2">
+                  Returning to dashboard...
                 </p>
               </div>
             </div>
